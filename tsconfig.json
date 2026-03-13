@@ -4,9 +4,9 @@
     "target": "ES2022",
     "lib": ["ES2022"],
 
-    /* Node CommonJS */
-    "module": "CommonJS",
-    "moduleResolution": "node",
+    /* Node ESM */
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
 
     /* Project structure */
     "rootDir": "src",
