@@ -1,50 +1,84 @@
+import express from "express";
 import { eq } from "drizzle-orm";
 import { index } from "./db/index.js";
-import { demoUsers } from "./db/schema/index.js";
+import { departments } from "./db/schema/index.js";
 
-async function main() {
-  try {
-    console.log("Performing CRUD operations...");
+const app = express();
+app.use(express.json());
 
-    const email = `admin+${Date.now()}@example.com`;
+app.get("/health", (_req, res) => {
+  res.json({ ok: true });
+});
 
-    const [newUser] = await index
-      .insert(demoUsers)
-      .values({ name: "Admin User", email })
-      .returning();
+async function runDemo() {
+  console.log("Performing CRUD operations (demo)...");
 
-    if (!newUser) {
-      throw new Error("Failed to create user");
-    }
+  const code = `CSE-${Date.now()}`;
 
-    console.log("CREATE:", newUser);
+  const [newDepartment] = await index
+    .insert(departments)
+    .values({
+      code,
+      name: "Computer Science",
+      description: "Demo department",
+    })
+    .returning();
 
-    const foundUser = await index
-      .select()
-      .from(demoUsers)
-      .where(eq(demoUsers.id, newUser.id));
-    console.log("READ:", foundUser[0]);
-
-    const [updatedUser] = await index
-      .update(demoUsers)
-      .set({ name: "Super Admin" })
-      .where(eq(demoUsers.id, newUser.id))
-      .returning();
-
-    if (!updatedUser) {
-      throw new Error("Failed to update user");
-    }
-
-    console.log("UPDATE:", updatedUser);
-
-    await index.delete(demoUsers).where(eq(demoUsers.id, newUser.id));
-    console.log("DELETE: User deleted.");
-
-    console.log("CRUD operations completed successfully.");
-  } catch (error) {
-    console.error("Error performing CRUD operations:", error);
-    process.exit(1);
+  if (!newDepartment) {
+    throw new Error("Failed to create department");
   }
+
+  console.log("CREATE:", newDepartment);
+
+  const foundDepartment = await index
+    .select()
+    .from(departments)
+    .where(eq(departments.id, newDepartment.id));
+  console.log("READ:", foundDepartment[0]);
+
+  const [updatedDepartment] = await index
+    .update(departments)
+    .set({ name: "Computer Science & Engineering" })
+    .where(eq(departments.id, newDepartment.id))
+    .returning();
+
+  if (!updatedDepartment) {
+    throw new Error("Failed to update department");
+  }
+
+  console.log("UPDATE:", updatedDepartment);
+
+  await index.delete(departments).where(eq(departments.id, newDepartment.id));
+  console.log("DELETE: Department deleted.");
+
+  console.log("CRUD operations completed successfully.");
 }
 
-void main();
+async function startServer() {
+  const port = Number(process.env.PORT) || 3000;
+
+  await new Promise<void>((resolve, reject) => {
+    const server = app.listen(port, () => {
+      console.log(`Server listening on port ${port}`);
+      resolve();
+    });
+
+    server.on("error", reject);
+  });
+}
+
+async function main() {
+  const runDemoFlag =
+    process.env.RUN_DEMO === "1" || process.argv.includes("--demo");
+
+  if (runDemoFlag) {
+    await runDemo();
+  }
+
+  await startServer();
+}
+
+main().catch((error) => {
+  console.error("Fatal error:", error);
+  process.exit(1);
+});
