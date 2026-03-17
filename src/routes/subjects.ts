@@ -7,10 +7,13 @@ const router = express.Router();
 
 router.get("/", async (req, res) => {
     try {
-        const { search, department, page = 1, limit = 10 } = req.query;
-
-        const currentPage = Math.max(1, +page);
-        const limitPerPage = Math.max(1, +limit);
+                const { search, department, page = "1", limit = "10" } = req.query;
+                const toPositiveInt = (v: unknown, fallback: number) => {
+                        const n = Number(v);
+                        return Number.isFinite(n) && n >= 1 ? Math.floor(n) : fallback;
+                    };
+                const currentPage = toPositiveInt(page, 1);
+                const limitPerPage = Math.min(toPositiveInt(limit, 10), 100);
 
         const offset = (currentPage - 1) * limitPerPage;
 
@@ -25,7 +28,8 @@ router.get("/", async (req, res) => {
             );
         }
         if (department) {
-            filterConditions.push(ilike(departments.name, `%${department}%`));
+            const deptPattern = `%${String(department).replace(/[%_]/g, '\\$&')}%`;
+            filterConditions.push(ilike(departments.name, deptPattern));
         }
 
         const whereClause = filterConditions.length > 0 ? and(...filterConditions): undefined;
